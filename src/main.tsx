@@ -12,6 +12,6 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         <Route path="/" element={<App />} />
         <Route path="/feedback" element={<Feedback />} />
       </Routes>
-    </HashRouter>,
+    </HashRouter>
   </React.StrictMode>,
 );

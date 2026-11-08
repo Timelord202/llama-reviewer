@@ -1,13 +1,19 @@
 use git2::{DiffFormat, ErrorCode, Repository};
-use tauri::{State, ipc::Channel};
-use tokio_stream::StreamExt;
 use ollama_rs::Ollama;
 use ollama_rs::generation::completion::request::GenerationRequest;
+use std::sync::Mutex;
+use tauri::Manager;
+use tauri::{State, ipc::Channel};
+use tokio_stream::StreamExt;
 
-struct AppState {
+struct LlamaState {
     ollama: Ollama,
     model: String,
     prompt: String,
+}
+
+struct GitState {
+    path: Option<String>,
 }
 
 fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
@@ -28,14 +34,24 @@ fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
 }
 
 #[tauri::command]
-async fn give_feedback(path: String, state: State<'_, AppState>, on_event: Channel<String>) -> Result<(), String> {
-    let model = state.model.clone();
-    let mut prompt = state.prompt.clone();
+async fn give_feedback(
+    llama_state: State<'_, LlamaState>,
+    git_state: State<'_, Mutex<GitState>>,
+    on_event: Channel<String>,
+) -> Result<(), String> {
+    let model = llama_state.model.clone();
+    let mut prompt = llama_state.prompt.clone();
+    let path = git_state
+        .lock()
+        .unwrap()
+        .path
+        .clone()
+        .ok_or("Error setting path internal state")?;
     let repo = Repository::open(path).unwrap();
     let diff = get_staged_diff(&repo).map_err(|e| e.message().to_string())?;
     prompt.push_str(&diff);
 
-    let mut stream = state
+    let mut stream = llama_state
         .ollama
         .generate_stream(GenerationRequest::new(model, prompt))
         .await
@@ -52,23 +68,37 @@ async fn give_feedback(path: String, state: State<'_, AppState>, on_event: Chann
 }
 
 #[tauri::command]
-fn check_repo_exists(path: String) -> bool {
-    Repository::open(path).is_ok()
+fn validate_repo_path(path: String, state: State<'_, Mutex<GitState>>) -> bool {
+    if Repository::open(&path).is_err() {
+        return false;
+    }
+
+    let mut state = state.lock().unwrap();
+    state.path = Some(path);
+    true
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState {
-            ollama: Ollama::default(),
-            model: "llama3.2:latest".to_string(),
-            prompt: "I'm giving you a git diff for various files changes in a git repo.
-            Give me detailed feedback for any possible improvements to the changes I've made.
-            If you have any suggested changes, format them using markdown. Don't show any git diffs
-            in the output: \n\n".to_string(),
-        })
-        .invoke_handler(tauri::generate_handler![give_feedback, check_repo_exists])
+        .setup(|app| {
+            app.manage(LlamaState {
+                    ollama: Ollama::default(),
+                    model: "tinyllama".to_string(),
+                    prompt: "I'm giving you a git diff for various files changes in a git repo.
+                    Give me detailed feedback for any possible improvements to the changes I've made.
+                    If you have any suggested changes, format them using markdown. Don't show any git diff
+                    text directly, only show the user relavent markdown: \n\n".to_string(),
+                }
+            );
+            app.manage(Mutex::new(GitState {
+                path: None
+            }));
+            Ok(())
+        }
+        )
+        .invoke_handler(tauri::generate_handler![give_feedback, validate_repo_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

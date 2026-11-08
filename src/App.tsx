@@ -7,14 +7,12 @@ function App() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  async function getFeedback(formData: FormData) {
+  async function validateRepoPath(formData: FormData) {
     const path = formData.get('filePath');
-    const repoExists = await invoke('check_repo_exists', { path });
+    const repoExists = await invoke('validate_repo_path', { path });
 
     if (repoExists) {
-      navigate("/feedback", {
-        state: { path }
-      });
+      navigate("/feedback");
     }
     
     setError("Failed to open repository. Please check that your path is correct");
@@ -29,7 +27,7 @@ function App() {
           Enter file path to a Git repo to receive feedback!
         </p>
 
-        <form action={getFeedback} className="w-full flex flex-col justify-center items-center gap-4 mt-10">
+        <form action={validateRepoPath} className="w-full flex flex-col justify-center items-center gap-4 mt-10">
           <div className="w-3/4">
             <label
               htmlFor="filePath"
