@@ -8,6 +8,7 @@ import Markdown from "react-markdown";
 export default function Feedback() {
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
+  const [showThinking, setShowThinking] = useState(false);
 
   useEffect(() => {
     const onEvent = new Channel<string>();
@@ -20,9 +21,11 @@ export default function Feedback() {
     async function getFeedback() {
       try {
         await invoke("give_feedback", { onEvent });
+        setShowThinking(true);
       } catch (e) {
         const err = JSON.parse(String(e));
         setError(err.error);
+        setShowThinking(false);
       }
     }
     getFeedback();
@@ -39,19 +42,15 @@ export default function Feedback() {
       <h1 className="my-3 text-white text-2xl font-bold">
         See Feedback Below:
       </h1>
-      {error.length > 0 ? (
-        <p className="text-red-400 flex gap-1 items-center font-bold">
-          <MdError /> Error: {error}
-        </p>
-      ) : (
-        <section className="max-w-none rounded-lg prose prose-invert prose-zinc p-10 border-2 border-zinc-800">
-          {feedback.length > 0 ? (
-            <Markdown>{feedback}</Markdown>
-          ) : (
-            <p className="font-bold">Thinking...</p>
-          )}
-        </section>
-      )}
+      <section className="max-w-none min-h-lg rounded-lg prose prose-invert prose-zinc p-10 border-2 border-zinc-800">
+        {error.length > 0 && (
+          <p className="text-red-400 flex gap-1 items-center font-bold">
+            <MdError /> Error: {error}
+          </p>
+        )}
+        {showThinking && <p className="text-white font-bold">Thinking...</p>}
+        <Markdown>{feedback}</Markdown>
+      </section>
     </main>
   );
 }
