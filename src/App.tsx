@@ -1,19 +1,24 @@
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { useState } from 'react';
 
-type Feedback = {
-  error: boolean,
-  err_message: string,
-  response: string,
-};
-
 function App() {
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [error, setError] = useState('');
+  const onEvent = new Channel<string>();
 
-  async function analyzeRepo(formData: FormData) {
+  onEvent.onmessage = (chunk) => {
+    setFeedback(prev => prev + chunk);
+  };
+
+  async function getFeedback(formData: FormData) {
     const path = formData.get('filePath');
-    const feedback: Feedback = await invoke('give_feedback', { path });
-    setFeedback(feedback);
+
+    try {
+      await invoke('give_feedback', { path, onEvent });
+    }
+    catch (e) {
+      setError(String(e));
+    }
   }
 
   return (
@@ -25,7 +30,7 @@ function App() {
           Enter file path to a Git repo to receive feedback!
         </p>
 
-        <form action={analyzeRepo} className="flex flex-col gap-4 mt-10">
+        <form action={getFeedback} className="flex flex-col gap-4 mt-10">
           <div>
             <label
               htmlFor="filePath"
@@ -51,9 +56,10 @@ function App() {
         </form>
       </div>
 
-      {feedback?.error && (
-        <p className="text-red-400 font-bold">{feedback.err_message}</p>
+      {error.length > 0 && (
+        <p className="text-red-400 font-bold">{error}</p>
       )}
+      {<p className="text-white">{feedback}</p>}
     </main>
   )
 }
