@@ -20,6 +20,7 @@ struct GitState {
     path: Option<String>,
 }
 
+// Retrieves staged diffs that will be sent to the model
 fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
     let head = match repo.head() {
         Ok(head) => Some(head.peel_to_tree()?),
@@ -44,6 +45,8 @@ fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
     Ok(output)
 }
 
+// NOTE: Errors below are formatted as JSON. This is so all errors can be read the
+// same way in the frontend
 #[tauri::command]
 async fn give_feedback(
     llama_state: State<'_, LlamaState>,
@@ -52,7 +55,6 @@ async fn give_feedback(
 ) -> Result<(), String> {
     let model = OLLAMA_MODEL.to_string();
     let mut prompt = PROMPT.to_string();
-    // Need to format error as JSON so it can be parsed by Feedback.tsx
     let path = git_state
         .lock()
         .unwrap()
