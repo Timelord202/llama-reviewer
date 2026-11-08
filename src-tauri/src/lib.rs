@@ -6,10 +6,14 @@ use tauri::Manager;
 use tauri::{State, ipc::Channel};
 use tokio_stream::StreamExt;
 
+const OLLAMA_MODEL: &str = "qwen2.5-Coder:7b";
+const PROMPT: &str = "I'm giving you a git diff for various files changes in a git repo.
+                    Point out any recommended changes you would make. Only focus on the changes being presented.
+                    If you have any suggested changes, format them using markdown. Don't show any git diff text directly, 
+                    only show the user relavent markdown: \n\n";
+
 struct LlamaState {
-    ollama: Ollama,
-    model: String,
-    prompt: String,
+    ollama: Ollama
 }
 
 struct GitState {
@@ -46,8 +50,8 @@ async fn give_feedback(
     git_state: State<'_, Mutex<GitState>>,
     on_event: Channel<String>,
 ) -> Result<(), String> {
-    let model = llama_state.model.clone();
-    let mut prompt = llama_state.prompt.clone();
+    let model = OLLAMA_MODEL.to_string();
+    let mut prompt = PROMPT.to_string();
     let path = git_state
         .lock()
         .unwrap()
@@ -91,12 +95,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(LlamaState {
-                    ollama: Ollama::default(),
-                    model: "qwen2.5-Coder:7b".to_string(),
-                    prompt: "I'm giving you a git diff for various files changes in a git repo.
-                    Point out any recommended changes you would make. Only focus on the changes being presented.
-                    If you have any suggested changes, format them using markdown. Don't show any git diff text directly, 
-                    only show the user relavent markdown: \n\n".to_string(),
+                    ollama: Ollama::default()
                 }
             );
             app.manage(Mutex::new(GitState {

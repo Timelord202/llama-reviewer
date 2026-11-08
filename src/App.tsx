@@ -6,6 +6,7 @@ import llamaImage from "./assets/mascot.gif";
 function App() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const ollamaModel = 'qwen2.5-coder:7b';
 
   async function validateRepoPath(formData: FormData) {
     try {
@@ -23,8 +24,8 @@ function App() {
       <div className="flex-1/2 w-full flex flex-col justify-center items-center max-w-lg">
         <img className="w-1/3" src={llamaImage} alt="Image of a llama" />
         <h1 className="mt-5 text-3xl font-bold">Llama Reviewer</h1>
-        <p className="text-zinc-400">
-          Enter file path to a Git repo to receive feedback!
+        <p className="text-zinc-400 w-3/4 mt-3">
+          Welcome to Llama Reviewer! To get started, run the ollama '{ollamaModel}' model and enter the path to your Git repo!
         </p>
 
         <form action={validateRepoPath} className="w-full flex flex-col justify-center items-center gap-4 mt-10">
