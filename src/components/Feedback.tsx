@@ -5,27 +5,37 @@ import { IoIosArrowBack } from "react-icons/io";
 import { MdError } from "react-icons/md";
 import Markdown from "react-markdown";
 
+type FeedbackState = {
+  text: string;
+  error: boolean;
+};
+
 export default function Feedback() {
-  const [feedback, setFeedback] = useState("");
-  const [error, setError] = useState("");
-  const [showThinking, setShowThinking] = useState(false);
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>({
+    text: "Thinking...",
+    error: false,
+  });
 
   useEffect(() => {
     const onEvent = new Channel<string>();
 
     // Event called when model streams it's response
     onEvent.onmessage = (chunk) => {
-      setFeedback((prev) => prev + chunk);
+      setFeedbackState((prev) => ({
+        text: prev.text + chunk,
+        error: false,
+      }));
     };
 
     async function getFeedback() {
       try {
         await invoke("give_feedback", { onEvent });
-        setShowThinking(true);
       } catch (e) {
         const err = JSON.parse(String(e));
-        setError(err.error);
-        setShowThinking(false);
+        setFeedbackState({
+          text: err.error,
+          error: true,
+        });
       }
     }
     getFeedback();
@@ -43,13 +53,13 @@ export default function Feedback() {
         See Feedback Below:
       </h1>
       <section className="max-w-none min-h-lg rounded-lg prose prose-invert prose-zinc p-10 border-2 border-zinc-800">
-        {error.length > 0 && (
-          <p className="text-red-400 flex gap-1 items-center font-bold">
-            <MdError /> Error: {error}
+        {feedbackState.error ? (
+          <p className="flex gap-1 items-center text-red-400 font-bold">
+            <MdError /> Error: {feedbackState.text}
           </p>
+        ) : (
+          <Markdown>{feedbackState.text}</Markdown>
         )}
-        {showThinking && <p className="text-white font-bold">Thinking...</p>}
-        <Markdown>{feedback}</Markdown>
       </section>
     </main>
   );
