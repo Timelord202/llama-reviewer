@@ -13,7 +13,7 @@ const PROMPT: &str = "I'm giving you a git diff for various files changes in a g
                     only show the user relavent markdown: \n\n";
 
 struct LlamaState {
-    ollama: Ollama
+    ollama: Ollama,
 }
 
 struct GitState {
@@ -36,7 +36,7 @@ fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
             '+' | '-' | ' ' => output.push(line.origin()),
             _ => {}
         }
-        
+
         output.push_str(&String::from_utf8_lossy(line.content()));
         true
     })?;
@@ -81,7 +81,7 @@ async fn give_feedback(
 #[tauri::command]
 fn validate_repo_path(path: String, state: State<'_, Mutex<GitState>>) -> Result<(), String> {
     if Repository::open(&path).is_err() {
-        return Err("Failed to open repository. Please check your path is correct".to_string())
+        return Err("Failed to open repository. Please check your path is correct".to_string());
     }
 
     let mut state = state.lock().unwrap();
@@ -95,15 +95,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(LlamaState {
-                    ollama: Ollama::default()
-                }
-            );
-            app.manage(Mutex::new(GitState {
-                path: None
-            }));
+                ollama: Ollama::default(),
+            });
+            app.manage(Mutex::new(GitState { path: None }));
             Ok(())
-        }
-        )
+        })
         .invoke_handler(tauri::generate_handler![give_feedback, validate_repo_path])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

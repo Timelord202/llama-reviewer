@@ -12,9 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "llama-reviewer",
+        "title": "Llama Reviewer",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "minWidth": 500,
+        "minHeight": 300,
+        "maxWidth": 1200,
+        "maxHeight": 800
       }
     ],
     "security": {
