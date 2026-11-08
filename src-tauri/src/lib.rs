@@ -31,8 +31,7 @@ fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
 async fn give_feedback(path: String, state: State<'_, AppState>, on_event: Channel<String>) -> Result<(), String> {
     let model = state.model.clone();
     let mut prompt = state.prompt.clone();
-    let repo = Repository::open(path)
-        .map_err(|_| "Failed to initialize repo. Please verify your path is correct".to_string())?;
+    let repo = Repository::open(path).unwrap();
     let diff = get_staged_diff(&repo).map_err(|e| e.message().to_string())?;
     prompt.push_str(&diff);
 
@@ -52,6 +51,11 @@ async fn give_feedback(path: String, state: State<'_, AppState>, on_event: Chann
     Ok(())
 }
 
+#[tauri::command]
+fn check_repo_exists(path: String) -> bool {
+    Repository::open(path).is_ok()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -64,7 +68,7 @@ pub fn run() {
             If you have any suggested changes, format them using markdown. Don't show any git diffs
             in the output: \n\n".to_string(),
         })
-        .invoke_handler(tauri::generate_handler![give_feedback])
+        .invoke_handler(tauri::generate_handler![give_feedback, check_repo_exists])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
