@@ -7,7 +7,7 @@ use tauri::{State, ipc::Channel};
 use tokio_stream::StreamExt;
 
 const OLLAMA_MODEL: &str = "qwen2.5-Coder:7b";
-const PROMPT: &str = "I'm giving you a git diff for various files changes in a git repo.
+const PROMPT: &str = "I'm giving you a git diff for various file changes in a git repo.
                     Point out any recommended changes you would make. Only focus on the changes being presented.
                     If you have any suggested changes, format them using markdown. Don't show any git diff text directly, 
                     only show the user relavent markdown: \n\n";
@@ -52,12 +52,13 @@ async fn give_feedback(
 ) -> Result<(), String> {
     let model = OLLAMA_MODEL.to_string();
     let mut prompt = PROMPT.to_string();
+    // Need to format error as JSON so it can be parsed by Feedback.tsx
     let path = git_state
         .lock()
         .unwrap()
         .path
         .clone()
-        .ok_or("Error retrieving path from tauri state")?;
+        .ok_or("{\"error\": \"Error retrieving path from tauri state\"}")?;
     let repo = Repository::open(path).unwrap();
     let diff = get_staged_diff(&repo).map_err(|e| e.message().to_string())?;
     prompt.push_str(&diff);
@@ -81,7 +82,10 @@ async fn give_feedback(
 #[tauri::command]
 fn validate_repo_path(path: String, state: State<'_, Mutex<GitState>>) -> Result<(), String> {
     if Repository::open(&path).is_err() {
-        return Err("Failed to open repository. Please check your path is correct".to_string());
+        return Err(
+            "{\"error\": \"Failed to open repository. Please check your path is correct\"}"
+                .to_string(),
+        );
     }
 
     let mut state = state.lock().unwrap();

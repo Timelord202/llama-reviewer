@@ -1,49 +1,57 @@
 import { useState, useEffect } from "react";
-import Markdown from "react-markdown";
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { NavLink } from "react-router";
+import { IoIosArrowBack } from "react-icons/io";
+import { MdError } from "react-icons/md";
+import Markdown from "react-markdown";
 
 export default function Feedback() {
   const [feedback, setFeedback] = useState("");
-  const [showWarning, setShowWarning] = useState(false);
-  const onEvent = new Channel<string>();
-  const warningMessage =
-    "Looks like the model has been thinking for a while. If this is unexpected, please verify your model is running and re-enter your git repo";
-
-  // Event called when model streams it's response
-  onEvent.onmessage = (chunk) => {
-    setShowWarning(false);
-    setFeedback((prev) => prev + chunk);
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    invoke("give_feedback", { onEvent });
+    const onEvent = new Channel<string>();
 
-    const timer = setTimeout(() => {
-      setShowWarning(true);
-    }, 20000);
+    // Event called when model streams it's response
+    onEvent.onmessage = (chunk) => {
+      setFeedback((prev) => prev + chunk);
+    };
 
-    return () => clearTimeout(timer);
+    async function getFeedback() {
+      try {
+        await invoke("give_feedback", { onEvent });
+      } catch (e) {
+        const err = JSON.parse(String(e));
+        setError(err.error);
+      }
+    }
+    getFeedback();
   }, []);
 
   return (
     <main className="bg-black min-h-screen p-10">
-      <NavLink className="text-white font-bold mb-5 hover:underline" to="/">
-        ◄ Back
+      <NavLink
+        className="flex gap-2 items-center text-white font-bold mb-5 hover:underline"
+        to="/"
+      >
+        <IoIosArrowBack /> Back
       </NavLink>
       <h1 className="my-3 text-white text-2xl font-bold">
         See Feedback Below:
       </h1>
-      {showWarning && (
-        <p className="text-yellow-400 font-bold mb-2">{warningMessage}</p>
+      {error.length > 0 ? (
+        <p className="text-red-400 flex gap-1 items-center font-bold">
+          <MdError /> Error: {error}
+        </p>
+      ) : (
+        <section className="max-w-none rounded-lg prose prose-invert prose-zinc p-10 border-2 border-zinc-800">
+          {feedback.length > 0 ? (
+            <Markdown>{feedback}</Markdown>
+          ) : (
+            <p className="font-bold">Thinking...</p>
+          )}
+        </section>
       )}
-      <section className="max-w-none rounded-lg prose prose-invert prose-zinc p-10 border-2 border-zinc-800">
-        {feedback.length == 0 ? (
-          <p className="font-bold">Thinking...</p>
-        ) : (
-          <Markdown>{feedback}</Markdown>
-        )}
-      </section>
     </main>
   );
 }

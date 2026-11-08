@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { MdError } from "react-icons/md";
 import llamaImage from "./assets/mascot.gif";
 
 function App() {
@@ -14,7 +15,8 @@ function App() {
       await invoke("validate_repo_path", { path });
       navigate("/feedback");
     } catch (e) {
-      setError(String(e));
+      const err = JSON.parse(String(e));
+      setError(err.error);
     }
   }
 
@@ -55,7 +57,11 @@ function App() {
         </button>
       </form>
 
-      <p className="mt-4 text-red-400 font-bold">{error}</p>
+      {error.length > 0 && (
+        <p className="mt-4 flex gap-1 items-center text-red-400 font-bold">
+          <MdError /> {error}
+        </p>
+      )}
     </main>
   );
 }
