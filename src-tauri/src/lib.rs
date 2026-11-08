@@ -6,7 +6,7 @@ use tauri::Manager;
 use tauri::{State, ipc::Channel};
 use tokio_stream::StreamExt;
 
-const OLLAMA_MODEL: &str = "qwen2.5-Coder:7b";
+const OLLAMA_MODEL: &str = "qwen2.5-Coder:14b";
 const PROMPT: &str = "I'm giving you a git diff for various file changes in a git repo.
                     Point out any recommended changes you would make. Only focus on the changes being presented.
                     If you have any suggested changes, format them using markdown. Don't show any git diff text directly, 

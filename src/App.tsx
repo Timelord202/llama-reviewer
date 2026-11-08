@@ -7,7 +7,7 @@ import llamaImage from "./assets/mascot.gif";
 function App() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const ollamaModel = "qwen2.5-coder:7b";
+  const ollamaModel = "qwen2.5-Coder:14b";
 
   async function validateRepoPath(formData: FormData) {
     try {

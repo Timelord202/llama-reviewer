@@ -6,14 +6,18 @@ import { MdError } from "react-icons/md";
 import Markdown from "react-markdown";
 
 type FeedbackState = {
-  text: string;
+  response: string;
   error: boolean;
+  errorMessage: string;
+  isThinking: boolean;
 };
 
 export default function Feedback() {
   const [feedbackState, setFeedbackState] = useState<FeedbackState>({
-    text: "Thinking...",
+    response: "",
     error: false,
+    errorMessage: "",
+    isThinking: true,
   });
 
   useEffect(() => {
@@ -22,8 +26,10 @@ export default function Feedback() {
     // Event called when model streams it's response
     onEvent.onmessage = (chunk) => {
       setFeedbackState((prev) => ({
-        text: prev.text + chunk,
+        response: prev.response + chunk,
         error: false,
+        errorMessage: "",
+        isThinking: false,
       }));
     };
 
@@ -33,8 +39,10 @@ export default function Feedback() {
       } catch (e) {
         const err = JSON.parse(String(e));
         setFeedbackState({
-          text: err.error,
+          response: "",
           error: true,
+          errorMessage: err.error,
+          isThinking: false,
         });
       }
     }
@@ -53,12 +61,15 @@ export default function Feedback() {
         See Feedback Below:
       </h1>
       <section className="max-w-none min-h-lg rounded-lg prose prose-invert prose-zinc p-10 border-2 border-zinc-800">
+        {feedbackState.isThinking && (
+          <p className="text-white font-bold">Thinking...</p>
+        )}
         {feedbackState.error ? (
           <p className="flex gap-1 items-center text-red-400 font-bold">
-            <MdError /> Error: {feedbackState.text}
+            <MdError /> Error: {feedbackState.errorMessage}
           </p>
         ) : (
-          <Markdown>{feedbackState.text}</Markdown>
+          <Markdown>{feedbackState.response}</Markdown>
         )}
       </section>
     </main>
