@@ -2,7 +2,7 @@
 
 This project uses ollama qwen2.5-Coder:14b to review staged files within a Git repository.
 
-To get started, view the release page and download the correct version for your OS. Once installed, run ollama qwen2.5-Coder:14b locally and start reviewing your code!
+If you're a windows user, view the release page and download the .exe provided. Once installed, run ollama qwen2.5-Coder:14b locally and start reviewing your code!
 
 ## 🛠️ Tools used
 
