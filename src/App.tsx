@@ -8,14 +8,14 @@ function App() {
   const navigate = useNavigate();
 
   async function validateRepoPath(formData: FormData) {
-    const path = formData.get('filePath');
-    const repoExists = await invoke('validate_repo_path', { path });
-
-    if (repoExists) {
+    try {
+      const path = formData.get('filePath');
+      await invoke('validate_repo_path', { path });
       navigate("/feedback");
     }
-    
-    setError("Failed to open repository. Please check that your path is correct");
+    catch(e) {
+      setError(String(e));
+    }
   }
 
   return (

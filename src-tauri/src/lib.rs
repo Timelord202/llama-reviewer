@@ -22,10 +22,17 @@ fn get_staged_diff(repo: &Repository) -> Result<String, git2::Error> {
         Err(e) if e.code() == ErrorCode::UnbornBranch => None,
         Err(e) => return Err(e),
     };
+
+    // This is equivalent to 'git diff --cached'
     let diff = repo.diff_tree_to_index(head.as_ref(), None, None)?;
     let mut output = String::new();
 
     diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
+        match line.origin() {
+            '+' | '-' | ' ' => output.push(line.origin()),
+            _ => {}
+        }
+        
         output.push_str(&String::from_utf8_lossy(line.content()));
         true
     })?;
@@ -46,7 +53,7 @@ async fn give_feedback(
         .unwrap()
         .path
         .clone()
-        .ok_or("Error setting path internal state")?;
+        .ok_or("Error retrieving path from tauri state")?;
     let repo = Repository::open(path).unwrap();
     let diff = get_staged_diff(&repo).map_err(|e| e.message().to_string())?;
     prompt.push_str(&diff);
@@ -68,14 +75,14 @@ async fn give_feedback(
 }
 
 #[tauri::command]
-fn validate_repo_path(path: String, state: State<'_, Mutex<GitState>>) -> bool {
+fn validate_repo_path(path: String, state: State<'_, Mutex<GitState>>) -> Result<(), String> {
     if Repository::open(&path).is_err() {
-        return false;
+        return Err("Failed to open repository. Please check your path is correct".to_string())
     }
 
     let mut state = state.lock().unwrap();
     state.path = Some(path);
-    true
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -85,11 +92,11 @@ pub fn run() {
         .setup(|app| {
             app.manage(LlamaState {
                     ollama: Ollama::default(),
-                    model: "tinyllama".to_string(),
+                    model: "qwen2.5-Coder:7b".to_string(),
                     prompt: "I'm giving you a git diff for various files changes in a git repo.
-                    Give me detailed feedback for any possible improvements to the changes I've made.
-                    If you have any suggested changes, format them using markdown. Don't show any git diff
-                    text directly, only show the user relavent markdown: \n\n".to_string(),
+                    Point out any recommended changes you would make. Only focus on the changes being presented.
+                    If you have any suggested changes, format them using markdown. Don't show any git diff text directly, 
+                    only show the user relavent markdown: \n\n".to_string(),
                 }
             );
             app.manage(Mutex::new(GitState {
